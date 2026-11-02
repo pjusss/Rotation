@@ -34,6 +34,16 @@ Spotify keeps apps in Development Mode limited to 5 accounts, and the account th
 2. In Rotation, open **Invite friends** and send them the link.
 3. They tap **Connect with Spotify**. You become friends automatically.
 
+## Listening time
+
+Spotify's API has no listening-time or play-count data, so Rotation logs plays itself:
+
+- A pg_cron job (`rotation-collect-plays`) calls `POST /cron/collect` every 20 minutes. It's authenticated with the `cron_secret` value in `app_settings`, and it saves everyone's latest 50 plays into `plays` (with track details in `tracks`).
+- Plays are also saved whenever someone's stats load.
+- `app_history` turns the log into minutes for today, the last 7 days and the week before, a 14-day chart, a streak, most played tracks and artists, and plays by hour. `app_leaderboard` ranks you and your friends by listening time over the last 7 days.
+- Minutes are estimates: Spotify timestamps a play when it ends, so each play counts as the shorter of the song's length and the time since the previous play ended.
+- History only covers the time since someone joined. Spotify's "Extended streaming history" download could backfill older years later.
+
 ## Data and caching
 
 - Top items are cached for an hour, recent plays for 5 minutes, now playing for 40 seconds. "Refresh stats" asks for anything older than 2 minutes.

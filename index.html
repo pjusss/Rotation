@@ -3,10 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https: data:; connect-src https://ohcfeqlcecvfxhnpmujr.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src https://ohcfeqlcecvfxhnpmujr.supabase.co; manifest-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="theme-color" content="#131316">
-<meta name="description" content="Your top Spotify artists, tracks, albums and genres, and how your taste compares with your friends.">
+<meta name="description" content="Your top Spotify artists, tracks and listening time, and how your taste compares with your friends.">
 <title>Rotation</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rotation">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Rotation">
+<meta property="og:description" content="Top artists, tracks and listening time from Spotify, with your friends.">
+<meta property="og:url" content="https://rotation-stats.vercel.app/">
+<meta property="og:image" content="https://rotation-stats.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23131316'/%3E%3Ccircle cx='12' cy='12' r='7' fill='none' stroke='%23f3f2ee' stroke-width='2.4' stroke-dasharray='36 8' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='2.2' fill='%2322dd6a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -111,6 +125,39 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
 .match-pct{font-weight:900;font-stretch:62%;font-size:92px;line-height:.82;font-variant-numeric:tabular-nums}
 .match-sum{margin:14px 0 20px;max-width:44ch;color:rgba(243,242,238,.86)}
 .match .s-h3{margin-top:22px}
+
+/* Listening time */
+.lt-big{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 14px}
+.lt-num{font-weight:900;font-stretch:62%;font-size:92px;line-height:.82;font-variant-numeric:tabular-nums}
+.lt-label{font-size:15px;color:rgba(243,242,238,.8)}
+.lt-delta{margin:14px 0 0;font-size:14px;font-weight:600}
+.lt-delta.up{color:var(--green)}
+.lt-delta.down{color:var(--down)}
+.lt-stats{margin:18px 0 0}
+.lt-stats strong{font-size:26px}
+.lt-chart{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:5px;align-items:end;height:128px;margin:22px 0 0}
+.lt-col{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+.lt-bar{display:block;width:100%;min-height:3px;border-radius:4px 4px 2px 2px;background:rgb(var(--tint-hi));opacity:.45;transition:background-color 1.1s ease}
+.lt-col.today .lt-bar{opacity:1}
+.lt-col.zero .lt-bar{background:rgba(255,255,255,.1);opacity:1}
+.lt-day{font-size:11px;font-weight:600;line-height:1;color:var(--muted)}
+.lt-col.today .lt-day{color:var(--text)}
+.lt-sub{margin:30px 0 6px}
+.lt-sub .s-h3{margin:0}
+.lt-note{margin:16px 0 0;font-size:13px;color:var(--muted)}
+.cnt{text-align:right;font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.rank-row.played{grid-template-columns:26px 44px minmax(0,1fr) auto}
+.rank-row.played .art{width:44px;height:44px}
+.rank-row.played .n{font-size:20px}
+
+/* Weekly leaderboard */
+.board{list-style:none;margin:0;padding:0}
+.board-h{margin:26px 0 8px}
+.board-row{display:grid;grid-template-columns:22px 40px minmax(0,1fr) auto;align-items:center;gap:12px;width:calc(100% + 16px);margin:0 -8px;padding:6px 8px;border-radius:10px;text-align:left}
+.board-row .avatar{width:40px;height:40px}
+.board-row .n{text-align:right;font-weight:850;font-stretch:62%;font-size:20px;color:var(--muted)}
+.board-row .g-bar{margin-top:6px;height:4px}
+button.board-row:active{background:rgba(255,255,255,.06)}
 
 /* Swipeable top lists */
 .rail{display:flex;gap:14px;margin:0 calc(var(--gutter) * -1);padding:0 var(--gutter) 4px;list-style:none;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding-inline:var(--gutter);scrollbar-width:none}
@@ -325,6 +372,16 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
   const fmtHour = new Intl.DateTimeFormat('en', { hour: 'numeric' });
   const fmtDay = new Intl.DateTimeFormat('en', { weekday: 'short', month: 'short', day: 'numeric' });
   const hourName = h => fmtHour.format(new Date(2000, 0, 1, h));
+  // Day strings from the backend ("2026-11-01") are already in the viewer's time zone, so format them as UTC.
+  const fmtWeekday = new Intl.DateTimeFormat('en', { weekday: 'narrow', timeZone: 'UTC' });
+  const fmtDayUTC = new Intl.DateTimeFormat('en', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const TZ = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } })();
+  function fmtDur(ms) {
+    const m = Math.round((ms || 0) / 60000);
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60), r = m % 60;
+    return r ? `${h}h ${r}m` : `${h}h`;
+  }
   function dayLabel(d) {
     const a = new Date(d); a.setHours(0, 0, 0, 0);
     const b = new Date(); b.setHours(0, 0, 0, 0);
@@ -380,6 +437,8 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
     scroll: {},
     fatal: null,
     busy: false,
+    board: null,
+    boardAt: 0,
   };
   const isMe = id => !!state.me && id === state.me.id;
   const subjectId = () => state.friend || (state.me && state.me.id);
@@ -549,7 +608,7 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
 
   /* ---------- Shared bits of the stats pages ---------- */
   function header(title) {
-    const ranges = state.list === 'recent' ? '' : `<div class="ranges" role="tablist" aria-label="Time period">${RANGES.map(r => `<button role="tab" data-range="${r.id}" aria-selected="${r.id === state.range}">${r.label}</button>`).join('')}</div>`;
+    const ranges = state.list === 'recent' || state.list === 'played' ? '' : `<div class="ranges" role="tablist" aria-label="Time period">${RANGES.map(r => `<button role="tab" data-range="${r.id}" aria-selected="${r.id === state.range}">${r.label}</button>`).join('')}</div>`;
     return `<header class="bar" id="bar"><div class="bar-in">
       <div class="bar-title">${title != null ? `<button class="back" data-act="back" aria-label="Back">${CHEVRON}</button><h1 class="bar-h">${esc(title)}</h1>` : `<span class="wordmark">${MARK}rotation</span>`}</div>
       <button class="avatar" data-open="account:me" aria-label="Your account">${avatarInner(state.me)}</button>
@@ -604,7 +663,74 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
         const live = !!(n && n.playing);
         const label = `${f.name}${live ? `, listening to ${n.name}` : ''}`;
         return `<li><button class="friend" data-friend="${esc(f.id)}" aria-label="${esc(label)}"><span class="avatar mid${live ? ' live' : ''}">${avatarInner(f)}</span><span class="f-name">${esc(firstName(f))}</span>${live ? `<span class="f-now">${EQ}<span>${esc(n.name)}</span></span>` : ''}</button></li>`;
-      }).join('')}</ul></section>`;
+      }).join('')}</ul>${boardView()}</section>`;
+  }
+
+  // Listening time over the last 7 days for you and your friends.
+  function boardView() {
+    const b = state.board;
+    if (!b || b.length < 2 || !b.some(x => x.ms > 0)) return '';
+    const max = Math.max(1, ...b.map(x => x.ms));
+    const rows = b.map((x, i) => {
+      const mine = isMe(x.id);
+      const p = mine ? state.me : friendOf(x.id);
+      if (!p) return '';
+      const inner = `<span class="n">${i + 1}</span><span class="avatar">${avatarInner(p)}</span><span class="rt"><span class="t1">${esc(mine ? 'You' : firstName(p))}</span><span class="g-bar"><i style="width:${Math.max(2, (x.ms / max) * 100).toFixed(1)}%"></i></span></span><span class="cnt">${fmtDur(x.ms)}</span>`;
+      return `<li>${mine ? `<div class="board-row">${inner}</div>` : `<button class="board-row" data-friend="${esc(x.id)}">${inner}</button>`}</li>`;
+    }).join('');
+    return `<h3 class="s-h3 board-h">Listening time this week</h3><ol class="board">${rows}</ol>`;
+  }
+
+  function listenView(id) {
+    const u = state.users[id];
+    const h = u && u.history;
+    if (!h) return '';
+    const w = who(id);
+    const head = '<div class="sec-head"><h2>Listening time</h2></div>';
+    if (!h.total_plays) {
+      return `<section class="section">${head}<p class="muted">Rotation just started logging ${esc(w.poss)} plays. Listening time shows up here after the next few songs.</p></section>`;
+    }
+    const delta = h.week_ms - h.prev_week_ms;
+    const deltaHtml = h.prev_week_ms > 0
+      ? `<p class="lt-delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '▲' : '▼'} ${fmtDur(Math.abs(delta))} ${delta >= 0 ? 'more' : 'less'} than the week before</p>`
+      : '';
+    const days = h.days || [];
+    const max = Math.max(1, ...days.map(x => x.ms));
+    const chart = days.length ? `<div class="lt-chart" role="img" aria-label="Listening time per day over the last two weeks">${days.map((x, i) => {
+      const dt = new Date(x.d + 'T12:00:00Z');
+      const today = i === days.length - 1;
+      return `<div class="lt-col${today ? ' today' : ''}${x.ms ? '' : ' zero'}" title="${esc(fmtDayUTC.format(dt))}: ${fmtDur(x.ms)}"><span class="lt-bar" style="height:${x.ms ? (6 + (74 * x.ms) / max).toFixed(1) : 2}%"></span><span class="lt-day">${fmtWeekday.format(dt)}</span></div>`;
+    }).join('')}</div>` : '';
+    const all = h.top_tracks || [];
+    const top = all.slice(0, 5);
+    const more = all.length > 5 || (h.top_artists || []).length > 0;
+    return `<section class="section">${head}
+      <div class="lt-big"><span class="lt-num">${fmtDur(h.week_ms)}</span><span class="lt-label">in the last 7 days</span></div>
+      ${deltaHtml}
+      <div class="ranks3 lt-stats"><div><span>Today</span><strong>${fmtDur(h.today_ms)}</strong></div><div><span>Streak</span><strong>${plural(h.streak, 'day', 'days')}</strong></div><div><span>Plays this week</span><strong>${h.week_plays}</strong></div></div>
+      ${chart}
+      ${top.length ? `<div class="sec-head lt-sub"><h3 class="s-h3">Most played this week</h3>${more ? '<button class="see-all" data-list="played">See all</button>' : ''}</div><ol class="rank-list">${top.map((x, i) => playedRow(x, i + 1)).join('')}</ol>` : ''}
+      <p class="lt-note">Counting since ${esc(fmtDay.format(new Date(h.since)))}. Minutes are estimated from when each song ended.</p>
+    </section>`;
+  }
+  function playedRow(x, rank) {
+    const t = x.track || {};
+    return `<li><button class="rank-row played" data-open="track:${esc(t.id)}"><span class="n${rank <= 3 ? ' top' : ''}">${rank}</span><span class="art">${img(t.album && t.album.sm)}</span><span class="rt"><span class="t1">${esc(t.name)}</span><span class="t2">${esc(names(t.artists))}</span></span><span class="cnt">${plural(x.plays, 'play', 'plays')}</span></button></li>`;
+  }
+  function artistTimeRow(sid, a, rank) {
+    const known = findArtist(sid, a.id);
+    return `<li><button class="rank-row played" data-open="artist:${esc(a.id)}"><span class="n${rank <= 3 ? ' top' : ''}">${rank}</span><span class="art round">${img(known && known.sm)}</span><span class="rt"><span class="t1">${esc(a.name)}</span><span class="t2">${plural(a.plays, 'play', 'plays')}</span></span><span class="cnt">${fmtDur(a.ms)}</span></button></li>`;
+  }
+
+  function decadesView(id, d) {
+    const years = d.tracks.map(t => parseInt(year(t.album.date), 10)).filter(y => y > 1900);
+    if (years.length < 5) return '';
+    const m = new Map();
+    years.forEach(y => { const k = Math.floor(y / 10) * 10; m.set(k, (m.get(k) || 0) + 1); });
+    const rows = [...m.entries()].sort((a, b) => b[0] - a[0]);
+    const max = Math.max(...m.values());
+    return `<section class="section"><div class="sec-head"><h2>Decades</h2></div><ol class="genres">${rows.map(([dec, n]) => `<li><div class="genre"><span class="g-top"><span class="g-name">${dec}s</span><span class="g-count">${Math.round((n * 100) / years.length)}%</span></span><span class="g-bar"><i style="width:${((n / max) * 100).toFixed(1)}%"></i></span></div></li>`).join('')}</ol>
+      <p class="lt-note">Release years of ${esc(who(id).poss)} top ${years.length} tracks over ${rangeOf(state.range).long}.</p></section>`;
   }
 
   function matchView(id, r) {
@@ -659,10 +785,21 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
   }
 
   function clockView(id) {
-    const plays = (state.users[id] && state.users[id].recent) || [];
-    if (plays.length < 8) return '';
-    const counts = Array(24).fill(0);
-    plays.forEach(p => { counts[new Date(p.at).getHours()] += 1; });
+    const u = state.users[id] || {};
+    const h = u.history;
+    const plays = u.recent || [];
+    let counts, caption;
+    if (h && h.hours_plays >= 50 && Array.isArray(h.hours) && h.hours.length === 24) {
+      counts = h.hours.map(Number);
+      caption = `When ${esc(who(id).poss)} ${h.hours_plays} logged plays over the last 4 weeks happened.`;
+    } else {
+      if (plays.length < 8) return '';
+      counts = Array(24).fill(0);
+      plays.forEach(p => { counts[new Date(p.at).getHours()] += 1; });
+      const oldest = plays[plays.length - 1].at;
+      const since = dayLabel(oldest) === 'Today' ? 'earlier today' : dayLabel(oldest) === 'Yesterday' ? 'yesterday' : fmtDay.format(new Date(oldest));
+      caption = `When ${esc(who(id).poss)} last ${plays.length} plays happened, going back to ${since}. It switches to weeks of history once Rotation has logged more plays.`;
+    }
     const max = Math.max(...counts);
     const peak = counts.indexOf(max);
     const S = 240, C = S / 2, R0 = 42, R1 = 98, gap = 0.035;
@@ -680,14 +817,12 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
       const a = (h / 24) * 2 * Math.PI - Math.PI / 2, rr = R1 + 14;
       return `<text x="${(C + rr * Math.cos(a)).toFixed(1)}" y="${(C + rr * Math.sin(a)).toFixed(1)}" text-anchor="middle" dominant-baseline="middle">${t}</text>`;
     }).join('');
-    const oldest = plays[plays.length - 1].at;
-    const since = dayLabel(oldest) === 'Today' ? 'earlier today' : dayLabel(oldest) === 'Yesterday' ? 'yesterday' : fmtDay.format(new Date(oldest));
     return `<section class="section"><div class="sec-head"><h2>Listening clock</h2></div><div class="clock">
       <svg viewBox="-14 -14 ${S + 28} ${S + 28}" role="img" aria-label="Plays by hour of day. Most plays around ${hourName(peak)}.">${bars}${labels}
         <text x="${C}" y="${C - 15}" text-anchor="middle">Peak</text>
         <text class="c-big" x="${C}" y="${C + 13}" text-anchor="middle">${hourName(peak)}</text>
       </svg>
-      <p class="clock-cap">When ${esc(who(id).poss)} last ${plays.length} plays happened, going back to ${since}. Spotify only shares the 50 most recent plays.</p>
+      <p class="clock-cap">${caption}</p>
     </div></section>`;
   }
 
@@ -731,11 +866,13 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
       ${heroView(id, d, r)}
       <div id="now-slot">${nowView(id)}</div>
       ${mine ? `<div id="friends-slot">${friendsView()}</div>` : matchView(id, r)}
+      ${listenView(id)}
       ${railView('Top tracks', 'tracks', d.tracks.length, d.tracks.slice(0, 12).map((t, i) => tileView(`track:${t.id}`, t.album.md, i + 1, t.name, names(t.artists))))}
       ${railView('Top artists', 'artists', d.artists.length, d.artists.slice(0, 12).map((a, i) => tileView(`artist:${a.id}`, a.md, i + 1, a.name, '', true)), 'artists')}
       ${railView('Top albums', 'albums', x.albums.length, x.albums.slice(0, 12).map((al, i) => tileView(`album:${al.id}`, al.md, i + 1, al.name, al.artists.join(', '))))}
       ${factsView(id, d, x)}
       ${genresView(id, x.genres, false)}
+      ${decadesView(id, d)}
       ${clockView(id)}
       ${recentView(id, false)}
       ${mine ? '' : `<section class="section"><button class="btn btn-quiet" data-open="remove:${esc(id)}">Remove ${esc(who(id).name)} from friends</button></section>`}
@@ -745,7 +882,7 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
 
   function warnView(w) { return `<p class="warn" role="status">${esc(w)}</p>`; }
   function listTitle(id) {
-    const base = { tracks: 'top tracks', artists: 'top artists', albums: 'top albums', genres: 'top genres', recent: 'recently played' }[state.list];
+    const base = { tracks: 'top tracks', artists: 'top artists', albums: 'top albums', genres: 'top genres', recent: 'recently played', played: 'most played' }[state.list];
     if (isMe(id)) return base.charAt(0).toUpperCase() + base.slice(1);
     return state.list === 'recent' ? `${who(id).name}, recently played` : `${who(id).Poss} ${base}`;
   }
@@ -755,6 +892,15 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
     const d = u.top[state.range];
     const r = rangeOf(state.range);
     const w = who(id);
+    if (kind === 'played') {
+      const h = u.history || {};
+      const tracks = h.top_tracks || [];
+      const artists = h.top_artists || [];
+      if (!tracks.length) return '<p class="muted">No plays logged in the last 7 days yet.</p>';
+      return `<p class="list-note">The last 7 days, from the plays Rotation has logged${h.since ? ` since ${esc(fmtDay.format(new Date(h.since)))}` : ''}.</p>
+        <ol class="rank-list">${tracks.map((x, i) => playedRow(x, i + 1)).join('')}</ol>
+        ${artists.length ? `<div class="sec-head lt-sub"><h3 class="s-h3">Artists by listening time</h3></div><ol class="rank-list">${artists.map((a, i) => artistTimeRow(id, a, i + 1)).join('')}</ol>` : ''}`;
+    }
     if (kind === 'recent') return `<p class="list-note">Spotify shares the ${plural(u.recent.length, 'most recent play', 'most recent plays')}.</p>` + recentView(id, true);
     if (kind === 'genres') return `<p class="list-note">From the genres Spotify tags on ${esc(w.poss)} top ${d.artists.length} artists over ${r.long}, weighted by rank.</p>` + genresView(id, derived(id, state.range).genres, true);
     const cmp = COMPARE[state.range];
@@ -803,7 +949,7 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
       <div class="gate-main">
         ${g.invite ? `<p class="inviter"><span class="avatar">${avatarInner(g.invite)}</span><span><b>${esc(g.invite.name)}</b> invited you to compare your music.</span></p>` : ''}
         <h1>Your listening, ranked.</h1>
-        <p class="lede">Your top artists, tracks, albums and genres from Spotify, what your friends are into, and how your taste compares.</p>
+        <p class="lede">Your top artists, tracks and listening time from Spotify, what your friends are into, and how your taste compares.</p>
         ${msg ? `<p class="notice${g.err === 'deleted' ? ' calm' : ''}" role="alert">${esc(msg)}</p>` : ''}
         ${blocked && !msg ? `<p class="notice calm">${cfg.ready ? "This address isn't allowed to log in to Rotation yet." : "Rotation isn't connected to Spotify yet."}</p>` : ''}
         <button class="btn btn-green btn-wide" data-act="connect"${g.busy || blocked ? ' disabled' : ''}>${g.busy ? 'Opening Spotify…' : 'Connect with Spotify'}</button>
@@ -840,6 +986,8 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
       for (const r of RANGES) { const t = u && u.top && u.top[r.id] && u.top[r.id].tracks.find(x => x.id === tid); if (t) return t; }
       const rp = u && u.recent && u.recent.find(x => x.id === tid);
       if (rp) return rp;
+      const hp = u && u.history && (u.history.top_tracks || []).find(x => x.track && x.track.id === tid);
+      if (hp) return hp.track;
       if (state.now[id] && state.now[id].id === tid) return state.now[id];
     }
     return null;
@@ -865,6 +1013,10 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
     return `<div class="s-head"><span class="art">${img(t.album.lg || t.album.md)}</span><div><h2 class="s-title">${esc(t.name)}</h2><p class="s-sub">${esc(names(t.artists))}</p></div></div>
       ${rankLabel(sid)}${ranksView(sid, 'tracks', tid)}
       <dl class="s-dl">
+        ${(() => {
+          const hp = ((state.users[sid] && state.users[sid].history && state.users[sid].history.top_tracks) || []).find(x => x.track && x.track.id === tid);
+          return hp ? `<div><dt>Played this week</dt><dd>${plural(hp.plays, 'time', 'times')}, ${fmtDur(hp.ms)}</dd></div>` : '';
+        })()}
         ${yourRankRow(sid, 'tracks', tid)}
         ${t.album.name ? `<div><dt>${t.album.type === 'single' ? 'Single' : 'Album'}</dt><dd>${albumLink}</dd></div>` : ''}
         ${t.album.date ? `<div><dt>Released</dt><dd>${esc(year(t.album.date))}</dd></div>` : ''}
@@ -876,7 +1028,8 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
     const d = state.users[sid] && state.users[sid].top && state.users[sid].top[state.range];
     let a = findArtist(sid, aid);
     if (!a) {
-      const credit = [...((d && d.tracks) || []), ...((state.users[sid] && state.users[sid].recent) || [])].flatMap(t => t.artists).find(x => x.id === aid);
+      const hist = ((state.users[sid] && state.users[sid].history && state.users[sid].history.top_tracks) || []).map(x => x.track);
+      const credit = [...((d && d.tracks) || []), ...((state.users[sid] && state.users[sid].recent) || []), ...hist].flatMap(t => t.artists || []).find(x => x.id === aid);
       if (!credit) return '';
       a = { id: aid, name: credit.name, genres: [], url: `https://open.spotify.com/artist/${encodeURIComponent(aid)}` };
     }
@@ -914,7 +1067,7 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
         <button class="btn btn-quiet btn-block" data-act="logout">Log out</button>
         <button class="btn btn-danger btn-block" data-open="delete:me">Delete account</button>
       </div>
-      <p class="fine">Rankings are Spotify's own top items for each period. Spotify doesn't share play counts or minutes listened, so those aren't shown. You can remove Rotation's access any time in your <a href="https://www.spotify.com/account/apps/" target="_blank" rel="noopener">Spotify account settings</a>.</p>`;
+      <p class="fine">Rankings are Spotify's own top items for each period. Listening time and play counts come from the plays Rotation saves every 20 minutes, starting from when you joined, and minutes are estimates. You can remove Rotation's access any time in your <a href="https://www.spotify.com/account/apps/" target="_blank" rel="noopener">Spotify account settings</a>.</p>`;
   }
   function inviteSheet() {
     const link = `${appUrl()}?invite=${encodeURIComponent((state.me && state.me.invite_code) || '')}`;
@@ -1115,10 +1268,10 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
     u.error = null;
     if (subjectId() === id) render();
     try {
-      const r = await api(`/stats?user=${encodeURIComponent(id)}${fresh ? '&fresh=1' : ''}`);
-      Object.assign(u, { user: r.user, top: r.top, recent: r.recent || [], fetchedAt: r.fetched_at });
+      const r = await api(`/stats?user=${encodeURIComponent(id)}&tz=${encodeURIComponent(TZ)}${fresh ? '&fresh=1' : ''}`);
+      Object.assign(u, { user: r.user, top: r.top, recent: r.recent || [], history: r.history || null, fetchedAt: r.fetched_at });
       u.warn = r.stale ? staleNote(u, r.error, id) : null;
-      local.set('u.' + id, { user: r.user, top: r.top, recent: r.recent, fetchedAt: r.fetched_at });
+      local.set('u.' + id, { user: r.user, top: r.top, recent: r.recent, history: r.history || null, fetchedAt: r.fetched_at });
       clearMemo(id);
     } catch (e) {
       if (e.status === 401) { u.loading = false; return signedOut('signed_out'); }
@@ -1144,6 +1297,16 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
   async function refreshMe() {
     setMe(await api('/me'));
   }
+  async function loadBoard() {
+    if (!state.me || !(state.me.friends || []).length) { state.board = null; updateLive(); return; }
+    try {
+      state.board = await api('/leaderboard?tz=' + encodeURIComponent(TZ));
+      state.boardAt = Date.now();
+      updateLive();
+    } catch (e) {
+      if (e.status === 401) signedOut('signed_out');
+    }
+  }
   async function startApp(me) {
     state.screen = 'app';
     state.fatal = null;
@@ -1160,6 +1323,7 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
       if (!state.me) { state.fatal = explain(e, null); render(); return; }
     }
     render();
+    loadBoard();
     await loadUser(state.me.id);
     pollNow();
   }
@@ -1186,7 +1350,9 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
     nowTimer = setTimeout(pollNow, NOW_EVERY);
   }
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && state.screen === 'app' && state.me) pollNow();
+    if (document.visibilityState !== 'visible' || state.screen !== 'app' || !state.me) return;
+    pollNow();
+    if (Date.now() - state.boardAt > 5 * 60e3) loadBoard();
   });
 
   /* ---------- Actions ---------- */
@@ -1207,6 +1373,7 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
     refresh: () => withBusy(async () => {
       closeSheet();
       await refreshMe().catch(() => {});
+      loadBoard();
       await loadUser(subjectId(), true);
       toast('Stats refreshed');
     }),
@@ -1228,6 +1395,7 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
       try {
         await api('/friends?id=' + encodeURIComponent(id), { method: 'DELETE' });
         await refreshMe().catch(() => {});
+        loadBoard();
         delete state.users[id];
         local.del('u.' + id);
         toast(`Removed ${name}`);

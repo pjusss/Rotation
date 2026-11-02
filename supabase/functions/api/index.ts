@@ -251,9 +251,32 @@ async function fetchTop(userId: string) {
   return top;
 }
 
-async function fetchRecent(userId: string) {
+async function fetchRecentRaw(userId: string): Promise<any[]> {
   const r = await spotify(userId, '/me/player/recently-played?limit=50');
-  return (r?.items ?? []).filter((i: any) => i && i.track && i.track.name).map((i: any) => ({ at: i.played_at, ...slimTrack(i.track) }));
+  return (r?.items ?? []).filter((i: any) => i && i.track && i.track.name && i.played_at);
+}
+
+// Saves plays into the history tables. Local files have no Spotify ID and are skipped.
+async function savePlays(userId: string, raw: any[]): Promise<number> {
+  const items = raw.filter((i) => i.track.id).map((i) => ({ at: i.played_at, track: slimTrack(i.track) }));
+  if (!items.length) return 0;
+  return (await rpc('app_store_plays', { p_user: userId, p_items: items })) ?? 0;
+}
+
+const recentFrom = (raw: any[]) => raw.map((i: any) => ({ at: i.played_at, ...slimTrack(i.track) }));
+
+async function fetchRecent(userId: string) {
+  const raw = await fetchRecentRaw(userId);
+  await savePlays(userId, raw).catch((e) => console.error('saving plays failed', e));
+  return recentFrom(raw);
+}
+
+// Run by the scheduled job: save someone's latest plays and refresh their recent list.
+async function collect(userId: string): Promise<number> {
+  const raw = await fetchRecentRaw(userId);
+  const stored = await savePlays(userId, raw);
+  await rpc('app_cache_put', { p_user: userId, p_kind: 'recent', p_data: recentFrom(raw) });
+  return stored;
 }
 
 async function fetchNow(userId: string) {
@@ -379,7 +402,7 @@ async function redeem(body: any) {
 
 /* ---------- Stats and friends ---------- */
 
-async function stats(viewer: string, target: string, fresh: boolean) {
+async function stats(viewer: string, target: string, fresh: boolean, tz: string) {
   if (!UUID.test(target)) throw new HttpError(400, 'bad_request', 'Unknown user.');
   const user = await rpc('app_view', { p_viewer: viewer, p_target: target });
   if (!user) throw new HttpError(403, 'not_friends', 'You can only see stats of your friends.');
@@ -390,7 +413,15 @@ async function stats(viewer: string, target: string, fresh: boolean) {
       throw e;
     }),
   ]);
-  return { user, top: top.data, recent: recent.data ?? [], fetched_at: top.fetched_at, stale: !!top.stale, error: top.error ?? null };
+  // Computed after the recent plays above were saved, so it includes them.
+  const history = await rpc('app_history', { p_user: target, p_tz: tz }).catch((e) => {
+    console.error('history failed', e);
+    return null;
+  });
+  return {
+    user, top: top.data, recent: recent.data ?? [], history,
+    fetched_at: top.fetched_at, stale: !!top.stale, error: top.error ?? null,
+  };
 }
 
 async function nowPlaying(viewer: string, ids: string[]) {
@@ -435,6 +466,22 @@ Deno.serve(async (req: Request) => {
     }
     if (req.method === 'POST' && path === '/auth/start') return json(200, await authStart(await readBody(req)));
     if (req.method === 'POST' && path === '/auth/redeem') return json(200, await redeem(await readBody(req)));
+    if (req.method === 'POST' && path === '/cron/collect') {
+      const secret = (await settings()).cron_secret ?? '';
+      if (!secret || (req.headers.get('x-cron-secret') ?? '') !== secret) throw new HttpError(401, 'unauthorized', 'Not allowed.');
+      const ids: string[] = (await rpc('app_collect_targets')) ?? [];
+      let stored = 0;
+      let failed = 0;
+      for (const id of ids) {
+        try {
+          stored += await collect(id);
+        } catch (e) {
+          failed++;
+          console.error('collect failed', id, e instanceof HttpError ? e.code : e);
+        }
+      }
+      return json(200, { users: ids.length, stored, failed });
+    }
 
     // Everything below needs a session.
     const session = req.headers.get('x-session') ?? '';
@@ -443,11 +490,13 @@ Deno.serve(async (req: Request) => {
     if (!viewer) throw new HttpError(401, 'signed_out', 'Log in again.');
 
     const route = `${req.method} ${path}`;
+    const tz = (url.searchParams.get('tz') || 'UTC').slice(0, 64);
     if (route === 'GET /me') return json(200, await rpc('app_me', { p_user: viewer }));
     if (route === 'GET /stats') {
       const u = url.searchParams.get('user');
-      return json(200, await stats(viewer, !u || u === 'me' ? viewer : u, url.searchParams.get('fresh') === '1'));
+      return json(200, await stats(viewer, !u || u === 'me' ? viewer : u, url.searchParams.get('fresh') === '1', tz));
     }
+    if (route === 'GET /leaderboard') return json(200, await rpc('app_leaderboard', { p_viewer: viewer, p_tz: tz }));
     if (route === 'GET /now') return json(200, await nowPlaying(viewer, (url.searchParams.get('users') ?? 'me').split(',')));
     if (route === 'POST /friends') {
       const r = await rpc('app_accept_invite', { p_user: viewer, p_code: str((await readBody(req))?.code) });
