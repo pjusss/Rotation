@@ -150,6 +150,46 @@ body.loading .mark .ring{animation:spin 1.1s linear infinite}
 .rank-row.played .art{width:44px;height:44px}
 .rank-row.played .n{font-size:20px}
 
+/* Week by week */
+.wk-stats{margin:0 0 22px}
+.wk-stats strong{font-size:26px}
+.wk-stats em{display:block;margin-top:5px;font-style:normal;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wk-chart{position:relative;min-height:230px;margin:0 0 14px;touch-action:pan-y;-webkit-user-select:none;user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.wk-read{display:flex;align-items:baseline;gap:10px;height:22px;margin:0 0 8px;font-size:14px;white-space:nowrap;overflow:hidden}
+.wk-read b{font-weight:700}
+.wk-read span{color:var(--muted);font-variant-numeric:tabular-nums}
+.wk-chart svg{display:block;overflow:visible}
+.wk-grid{stroke:rgba(255,255,255,.07)}
+.wk-base{stroke:rgba(255,255,255,.18)}
+.wk-tick,.wk-x{fill:var(--muted);font-family:var(--font);font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.wk-x{font-size:11px}
+.wk-g0{stop-color:rgb(var(--tint-hi));stop-opacity:.3}
+.wk-g1{stop-color:rgb(var(--tint-hi));stop-opacity:0}
+.wk-line{fill:none;stroke:rgb(var(--tint-hi));stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;transition:stroke 1.1s ease}
+.wk-line.part{stroke-width:3;stroke-dasharray:.5 6}
+.wk-dot{fill:rgb(var(--tint-hi));stroke:var(--ink);stroke-width:2;transition:fill 1.1s ease}
+.wk-guide{stroke:rgba(255,255,255,.3);stroke-dasharray:2 3}
+.wk-hi{fill:rgb(var(--tint-hi));stroke:var(--ink);stroke-width:3}
+.wk-dot.part,.wk-hi.part{fill:var(--ink);stroke:rgb(var(--tint-hi));stroke-width:2.5}
+.wk-row{display:grid;grid-template-columns:46px minmax(0,1fr) auto;align-items:center;gap:12px;width:calc(100% + 16px);margin:0 -8px;padding:7px 8px;border-radius:10px;text-align:left}
+.wk-row .art{width:46px;height:46px;border-radius:4px}
+.wk-t1{display:flex;align-items:center;gap:8px}
+.wk-range{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tag{flex:none;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.1);font-size:11px;font-weight:650;line-height:1.35;color:rgba(243,242,238,.9)}
+.wk-val{display:flex;flex-direction:column;align-items:flex-end;gap:3px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.wk-val strong{font-size:15px;font-weight:700}
+.wk-val em{font-style:normal;font-size:12px;font-weight:650;color:var(--muted)}
+.wk-val em.up{color:var(--green)}
+.wk-val em.down{color:var(--down)}
+.sheet .lt-num{font-size:76px}
+.wk-days{grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;height:150px;margin:22px 0 26px}
+.wk-days .lt-bar{opacity:.85}
+.lt-val{font-size:10.5px;font-weight:650;line-height:1;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.lt-col.off .lt-bar{background:rgba(255,255,255,.05);opacity:1}
+.lt-col.off .lt-day{color:var(--faint)}
+.wk-nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.wk-nav .btn{padding:0 12px}
+
 /* Weekly leaderboard */
 .board{list-style:none;margin:0;padding:0}
 .board-h{margin:26px 0 8px}
@@ -222,8 +262,8 @@ button.board-row:active{background:rgba(255,255,255,.06)}
 .rank-row.mini .n{font-size:20px}
 .row.plain{grid-template-columns:44px minmax(0,1fr)}
 .row.plain .art{width:44px;height:44px}
-.row:active,.rank-row:active,.genre:active{background:rgba(255,255,255,.06)}
-@media (hover:hover){.row:hover,.rank-row:hover{background:rgba(255,255,255,.04)}}
+.row:active,.rank-row:active,.genre:active,.wk-row:active{background:rgba(255,255,255,.06)}
+@media (hover:hover){.row:hover,.rank-row:hover,.wk-row:hover{background:rgba(255,255,255,.04)}}
 .trend{text-align:right;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
 .trend.up,.trend.new{color:var(--green)}
 .trend.down{color:var(--down)}
@@ -381,6 +421,41 @@ button.board-row:active{background:rgba(255,255,255,.06)}
     if (m < 60) return `${m}m`;
     const h = Math.floor(m / 60), r = m % 60;
     return r ? `${h}h ${r}m` : `${h}h`;
+  }
+  // Whole hours once it's 10 hours or more, for the big numbers.
+  const fmtDurShort = ms => (ms >= 10 * 3600e3 ? `${Math.round(ms / 3600e3)}h` : fmtDur(ms));
+  const fmtNum = n => Number(n || 0).toLocaleString('en');
+
+  // Weeks. Day strings from the backend are local days, so they're handled as UTC dates.
+  const DAY_MS = 864e5;
+  const dUTC = s => new Date(s + 'T00:00:00Z');
+  const addDays = (s, n) => new Date(Date.parse(s + 'T00:00:00Z') + n * DAY_MS).toISOString().slice(0, 10);
+  const daysBetween = (a, b) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / DAY_MS);
+  const mondayOf = s => addDays(s, -((dUTC(s).getUTCDay() + 6) % 7));
+  const fmtMD = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const fmtWd = new Intl.DateTimeFormat('en', { weekday: 'short', timeZone: 'UTC' });
+  const fmtWdLong = new Intl.DateTimeFormat('en', { weekday: 'long', timeZone: 'UTC' });
+  function weekInfo(W) {
+    const today = W.today || new Date().toISOString().slice(0, 10);
+    const firstDay = W.first_day || null;
+    return { today, thisMon: mondayOf(today), firstDay, firstMon: firstDay ? mondayOf(firstDay) : null };
+  }
+  const isCurrent = (x, I) => x.w === I.thisMon;
+  // The week logging started in, when it started after Monday.
+  const isStartPartial = (x, I) => !!I.firstDay && x.w === I.firstMon && I.firstDay > x.w;
+  const isPartial = (x, I) => isCurrent(x, I) || isStartPartial(x, I);
+  // Which days of a week (0 is Monday) count: none before logging started or after today.
+  function countedDays(x, I) {
+    const start = isStartPartial(x, I) ? daysBetween(x.w, I.firstDay) : 0;
+    const end = isCurrent(x, I) ? daysBetween(x.w, I.today) : 6;
+    return { start, end, n: Math.max(1, end - start + 1) };
+  }
+  function weekRange(w, I) {
+    const a = dUTC(w), b = dUTC(addDays(w, 6));
+    let s = a.getUTCMonth() === b.getUTCMonth() ? `${fmtMD.format(a)} to ${b.getUTCDate()}` : `${fmtMD.format(a)} to ${fmtMD.format(b)}`;
+    const y = b.getUTCFullYear();
+    if (a.getUTCFullYear() !== y || String(y) !== I.today.slice(0, 4)) s += `, ${y}`;
+    return s;
   }
   function dayLabel(d) {
     const a = new Date(d); a.setHours(0, 0, 0, 0);
@@ -608,7 +683,7 @@ button.board-row:active{background:rgba(255,255,255,.06)}
 
   /* ---------- Shared bits of the stats pages ---------- */
   function header(title) {
-    const ranges = state.list === 'recent' || state.list === 'played' ? '' : `<div class="ranges" role="tablist" aria-label="Time period">${RANGES.map(r => `<button role="tab" data-range="${r.id}" aria-selected="${r.id === state.range}">${r.label}</button>`).join('')}</div>`;
+    const ranges = ['recent', 'played', 'weeks'].includes(state.list) ? '' : `<div class="ranges" role="tablist" aria-label="Time period">${RANGES.map(r => `<button role="tab" data-range="${r.id}" aria-selected="${r.id === state.range}">${r.label}</button>`).join('')}</div>`;
     return `<header class="bar" id="bar"><div class="bar-in">
       <div class="bar-title">${title != null ? `<button class="back" data-act="back" aria-label="Back">${CHEVRON}</button><h1 class="bar-h">${esc(title)}</h1>` : `<span class="wordmark">${MARK}rotation</span>`}</div>
       <button class="avatar" data-open="account:me" aria-label="Your account">${avatarInner(state.me)}</button>
@@ -678,7 +753,7 @@ button.board-row:active{background:rgba(255,255,255,.06)}
       const inner = `<span class="n">${i + 1}</span><span class="avatar">${avatarInner(p)}</span><span class="rt"><span class="t1">${esc(mine ? 'You' : firstName(p))}</span><span class="g-bar"><i style="width:${Math.max(2, (x.ms / max) * 100).toFixed(1)}%"></i></span></span><span class="cnt">${fmtDur(x.ms)}</span>`;
       return `<li>${mine ? `<div class="board-row">${inner}</div>` : `<button class="board-row" data-friend="${esc(x.id)}">${inner}</button>`}</li>`;
     }).join('');
-    return `<h3 class="s-h3 board-h">Listening time this week</h3><ol class="board">${rows}</ol>`;
+    return `<h3 class="s-h3 board-h">Listening time, last 7 days</h3><ol class="board">${rows}</ol>`;
   }
 
   function listenView(id) {
@@ -707,9 +782,9 @@ button.board-row:active{background:rgba(255,255,255,.06)}
     return `<section class="section">${head}
       <div class="lt-big"><span class="lt-num">${fmtDur(h.week_ms)}</span><span class="lt-label">in the last 7 days</span></div>
       ${deltaHtml}
-      <div class="ranks3 lt-stats"><div><span>Today</span><strong>${fmtDur(h.today_ms)}</strong></div><div><span>Streak</span><strong>${plural(h.streak, 'day', 'days')}</strong></div><div><span>Plays this week</span><strong>${h.week_plays}</strong></div></div>
+      <div class="ranks3 lt-stats"><div><span>Today</span><strong>${fmtDur(h.today_ms)}</strong></div><div><span>Streak</span><strong>${plural(h.streak, 'day', 'days')}</strong></div><div><span>7-day plays</span><strong>${fmtNum(h.week_plays)}</strong></div></div>
       ${chart}
-      ${top.length ? `<div class="sec-head lt-sub"><h3 class="s-h3">Most played this week</h3>${more ? '<button class="see-all" data-list="played">See all</button>' : ''}</div><ol class="rank-list">${top.map((x, i) => playedRow(x, i + 1)).join('')}</ol>` : ''}
+      ${top.length ? `<div class="sec-head lt-sub"><h3 class="s-h3">Most played, last 7 days</h3>${more ? '<button class="see-all" data-list="played">See all</button>' : ''}</div><ol class="rank-list">${top.map((x, i) => playedRow(x, i + 1)).join('')}</ol>` : ''}
       <p class="lt-note">Counting since ${esc(fmtDay.format(new Date(h.since)))}. Minutes are estimated from when each song ended.</p>
     </section>`;
   }
@@ -721,6 +796,170 @@ button.board-row:active{background:rgba(255,255,255,.06)}
     const known = findArtist(sid, a.id);
     return `<li><button class="rank-row played" data-open="artist:${esc(a.id)}"><span class="n${rank <= 3 ? ' top' : ''}">${rank}</span><span class="art round">${img(known && known.sm)}</span><span class="rt"><span class="t1">${esc(a.name)}</span><span class="t2">${plural(a.plays, 'play', 'plays')}</span></span><span class="cnt">${fmtDur(a.ms)}</span></button></li>`;
   }
+
+  // Every Monday-to-Sunday week since Rotation started logging plays, with a line graph.
+  function weeksView(id, all) {
+    const W = state.users[id] && state.users[id].weeks;
+    const list = (W && W.weeks) || [];
+    if (!list.length) return all ? '<p class="muted">No weeks logged yet.</p>' : '';
+    const I = weekInfo(W);
+    const full = list.filter(x => !isPartial(x, I));
+    const avg = full.length ? full.reduce((s, x) => s + x.ms, 0) / full.length : 0;
+    const best = list.reduce((a, b) => (b.ms > a.ms ? b : a), list[0]);
+    const total = list.reduce((s, x) => s + x.ms, 0);
+    const plays = list.reduce((s, x) => s + x.plays, 0);
+    const since = I.firstDay ? fmtMD.format(dUTC(I.firstDay)) : '';
+    const stats = `<div class="ranks3 wk-stats">
+      <div><span>Weekly average</span>${full.length ? `<strong>${fmtDurShort(avg)}</strong><em>${plural(full.length, 'full week', 'full weeks')}</em>` : '<strong class="out">After the first full week</strong>'}</div>
+      <div><span>Best week</span><strong>${fmtDurShort(best.ms)}</strong><em>${esc(weekRange(best.w, I))}</em></div>
+      <div><span>${since ? `Since ${esc(since)}` : 'In total'}</span><strong>${fmtDurShort(total)}</strong><em>${fmtNum(plays)} ${plays === 1 ? 'play' : 'plays'}</em></div>
+    </div>`;
+    const label = `Listening time per week over ${plural(list.length, 'week', 'weeks')}. Best: ${weekRange(best.w, I)}, ${fmtDur(best.ms)}.`;
+    const chart = `<div class="wk-chart" data-chart="${esc(id)}" role="img" aria-label="${esc(label)}"><p class="wk-read"></p></div>`;
+    const rows = list.slice(0, all ? list.length : 5).map((x, i) => weekRow(W, I, x, list[i + 1])).join('');
+    if (all) return `<p class="list-note">Every week since ${esc(since || 'Rotation started counting')}, Monday to Sunday. Minutes are estimates.</p>${stats}${chart}<ul class="rows">${rows}</ul>`;
+    return `<section class="section"><div class="sec-head"><h2>Week by week</h2>${list.length > 5 ? `<button class="see-all" data-list="weeks">See all ${list.length}</button>` : ''}</div>
+      ${stats}${chart}<ul class="rows">${rows}</ul>
+      <p class="lt-note">Weeks run Monday to Sunday. Tap a week for its top songs and artists.</p>
+    </section>`;
+  }
+  function weekRow(W, I, x, older) {
+    const t = x.tracks && x.tracks[0] && W.tracks && W.tracks[x.tracks[0].id];
+    const cur = isCurrent(x, I);
+    const tag = cur ? '<span class="tag">This week</span>'
+      : isStartPartial(x, I) ? `<span class="tag">From ${esc(fmtMD.format(dUTC(I.firstDay)))}</span>` : '';
+    const t2 = !x.plays ? 'No plays logged' : t ? `Most played: ${t.name}` : plural(x.plays, 'play', 'plays');
+    let sub = '';
+    if (cur) sub = '<em>so far</em>';
+    else if (older && !isPartial(x, I) && !isPartial(older, I)) {
+      const d = x.ms - older.ms;
+      sub = Math.abs(d) < 60e3 ? '<em>same</em>'
+        : `<em class="${d > 0 ? 'up' : 'down'}"><span class="sr">${d > 0 ? 'Up' : 'Down'} </span>${d > 0 ? '▲' : '▼'} ${fmtDur(Math.abs(d))}</em>`;
+    }
+    return `<li><button class="wk-row" data-open="week:${esc(x.w)}"><span class="art">${img(t && t.album && t.album.sm)}</span><span class="rt"><span class="t1 wk-t1"><span class="wk-range">${esc(weekRange(x.w, I))}</span>${tag}</span><span class="t2">${esc(t2)}</span></span><span class="wk-val"><strong>${fmtDur(x.ms)}</strong>${sub}</span></button></li>`;
+  }
+
+  /* ---------- Weekly line graph, drawn after render at the container's real width ---------- */
+  let chartSeq = 0;
+  // Gridlines every 5, 10, 15... minutes or every 1, 2, 3, 5, 10... hours, at most 4 of them.
+  function niceScale(maxMs) {
+    const maxMin = Math.max(1, maxMs / 60000);
+    const steps = maxMin <= 60 ? [5, 10, 15, 20, 30, 60] : [60, 120, 180, 300, 600, 1200, 1800, 3000, 6000, 12000];
+    const step = steps.find(s => Math.ceil(maxMin / s) <= 4) || steps[steps.length - 1];
+    return { step: step * 60000, top: Math.max(1, Math.ceil(maxMin / step)) * step * 60000 };
+  }
+  // Tangents for a smooth curve that never overshoots between two weeks.
+  function slopes(xs, ys) {
+    const n = xs.length, m = new Array(n).fill(0);
+    if (n < 2) return m;
+    const s = [];
+    for (let i = 0; i < n - 1; i++) s.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
+    for (let i = 1; i < n - 1; i++) {
+      const h0 = xs[i] - xs[i - 1], h1 = xs[i + 1] - xs[i];
+      const p = (s[i - 1] * h1 + s[i] * h0) / (h0 + h1);
+      m[i] = (Math.sign(s[i - 1]) + Math.sign(s[i])) * Math.min(Math.abs(s[i - 1]), Math.abs(s[i]), 0.5 * Math.abs(p)) || 0;
+    }
+    m[0] = n > 2 ? (3 * s[0] - m[1]) / 2 : s[0];
+    m[n - 1] = n > 2 ? (3 * s[n - 2] - m[n - 2]) / 2 : s[0];
+    return m;
+  }
+  function drawCharts() {
+    document.querySelectorAll('.wk-chart').forEach(drawWeeks);
+  }
+  function drawWeeks(el) {
+    const id = el.dataset.chart;
+    const W = state.users[id] && state.users[id].weeks;
+    const width = Math.floor(el.clientWidth);
+    if (!W || !W.weeks || !W.weeks.length || !width) return;
+    const I = weekInfo(W);
+    const weeks = W.weeks.slice().reverse();
+    const n = weeks.length;
+    const H = 200, L = 40, R = width - 14, T = 10, B = H - 26;
+    const { step, top } = niceScale(Math.max(...weeks.map(x => x.ms)));
+    const f = v => v.toFixed(1);
+    const y = v => B - (v / top) * (B - T);
+    const xs = weeks.map((_, i) => (n === 1 ? (L + R) / 2 : L + (i * (R - L)) / (n - 1)));
+    const ys = weeks.map(x => y(x.ms));
+    const part = weeks.map(x => isPartial(x, I));
+    let grid = `<line class="wk-base" x1="${L - 6}" x2="${width}" y1="${B}" y2="${B}"/><text class="wk-tick" x="${L - 10}" y="${B}" text-anchor="end" dominant-baseline="middle">0</text>`;
+    for (let v = step; v <= top + 1; v += step) {
+      grid += `<line class="wk-grid" x1="${L - 6}" x2="${width}" y1="${f(y(v))}" y2="${f(y(v))}"/><text class="wk-tick" x="${L - 10}" y="${f(y(v))}" text-anchor="end" dominant-baseline="middle">${fmtDur(v)}</text>`;
+    }
+    const spacing = n > 1 ? (R - L) / (n - 1) : Infinity;
+    const every = Math.max(1, Math.ceil(48 / spacing));
+    const labels = weeks.map((x, i) => ((n - 1 - i) % every ? '' : `<text class="wk-x" x="${f(xs[i])}" y="${H - 6}" text-anchor="middle">${fmtMD.format(dUTC(x.w))}</text>`)).join('');
+    const m = slopes(xs, ys);
+    const seg = i => {
+      const dx = (xs[i + 1] - xs[i]) / 3;
+      return `C${f(xs[i] + dx)},${f(ys[i] + dx * m[i])} ${f(xs[i + 1] - dx)},${f(ys[i + 1] - dx * m[i + 1])} ${f(xs[i + 1])},${f(ys[i + 1])}`;
+    };
+    let solid = '', dashed = '', area = '';
+    if (n > 1) {
+      for (let i = 0; i < n - 1; i++) {
+        const d = `M${f(xs[i])},${f(ys[i])}${seg(i)}`;
+        if (part[i] || part[i + 1]) dashed += d; else solid += d;
+      }
+      area = `M${f(xs[0])},${B}L${f(xs[0])},${f(ys[0])}${xs.slice(1).map((_, i) => seg(i)).join('')}L${f(xs[n - 1])},${B}Z`;
+    }
+    const gid = 'wkg' + (++chartSeq);
+    const dots = weeks.map((x, i) => (spacing >= 10 || part[i] || i === n - 1
+      ? `<circle class="wk-dot${part[i] ? ' part' : ''}" cx="${f(xs[i])}" cy="${f(ys[i])}" r="${spacing >= 10 ? 4 : 3}"/>` : '')).join('');
+    el.innerHTML = `<p class="wk-read" aria-hidden="true"></p><svg width="${width}" height="${H}" viewBox="0 0 ${width} ${H}" aria-hidden="true">
+      <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="wk-g0"/><stop offset="1" class="wk-g1"/></linearGradient></defs>
+      ${grid}${area ? `<path d="${area}" fill="url(#${gid})"/>` : ''}${solid ? `<path class="wk-line" d="${solid}"/>` : ''}${dashed ? `<path class="wk-line part" d="${dashed}"/>` : ''}
+      <line class="wk-guide" y1="${T}" y2="${B}"/>${dots}<circle class="wk-hi" r="6"/>${labels}
+    </svg>`;
+    el._geo = { xs, ys, weeks, I };
+    el._w = width;
+    bindChart(el);
+    setHover(el, el._hover);
+  }
+  // Shows one week above the graph: the newest by default, or the one under a finger or the mouse.
+  function setHover(el, i) {
+    const g = el._geo;
+    if (!g) return;
+    const n = g.weeks.length;
+    if (i == null || i < 0 || i >= n) i = n - 1;
+    el._hover = i;
+    const x = g.weeks[i];
+    const guide = el.querySelector('.wk-guide'), hi = el.querySelector('.wk-hi'), read = el.querySelector('.wk-read');
+    if (guide) { guide.setAttribute('x1', g.xs[i]); guide.setAttribute('x2', g.xs[i]); }
+    if (hi) { hi.setAttribute('cx', g.xs[i]); hi.setAttribute('cy', g.ys[i]); hi.classList.toggle('part', isPartial(x, g.I)); }
+    const note = isCurrent(x, g.I) ? ' so far' : isStartPartial(x, g.I) ? `, counting from ${fmtMD.format(dUTC(g.I.firstDay))}` : '';
+    if (read) read.innerHTML = `<b>${esc(weekRange(x.w, g.I))}</b><span>${fmtDur(x.ms)}${esc(note)}</span>`;
+  }
+  function bindChart(el) {
+    if (el._bound) return;
+    el._bound = true;
+    let downX = null;
+    const nearest = e => {
+      const g = el._geo;
+      if (!g) return -1;
+      const x = e.clientX - el.getBoundingClientRect().left;
+      let best = 0;
+      g.xs.forEach((v, i) => { if (Math.abs(v - x) < Math.abs(g.xs[best] - x)) best = i; });
+      return best;
+    };
+    // On touch screens the readout only follows sideways drags, so scrolling past the graph leaves it alone.
+    el.addEventListener('pointerdown', e => { downX = e.clientX; if (e.pointerType === 'mouse') setHover(el, nearest(e)); });
+    el.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || downX != null) setHover(el, nearest(e)); });
+    el.addEventListener('pointercancel', () => { downX = null; });
+    el.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') setHover(el, -1); });
+    el.addEventListener('click', e => {
+      // A sideways drag only moves the readout; a tap opens that week.
+      const dragged = downX != null && Math.abs(e.clientX - downX) > 12;
+      downX = null;
+      const i = nearest(e);
+      if (!dragged && i >= 0) openSheet('week:' + el._geo.weeks[i].w);
+    });
+  }
+  let resizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => document.querySelectorAll('.wk-chart').forEach(el => {
+      if (Math.floor(el.clientWidth) !== el._w) drawWeeks(el);
+    }), 120);
+  });
 
   function decadesView(id, d) {
     const years = d.tracks.map(t => parseInt(year(t.album.date), 10)).filter(y => y > 1900);
@@ -867,6 +1106,7 @@ button.board-row:active{background:rgba(255,255,255,.06)}
       <div id="now-slot">${nowView(id)}</div>
       ${mine ? `<div id="friends-slot">${friendsView()}</div>` : matchView(id, r)}
       ${listenView(id)}
+      ${weeksView(id, false)}
       ${railView('Top tracks', 'tracks', d.tracks.length, d.tracks.slice(0, 12).map((t, i) => tileView(`track:${t.id}`, t.album.md, i + 1, t.name, names(t.artists))))}
       ${railView('Top artists', 'artists', d.artists.length, d.artists.slice(0, 12).map((a, i) => tileView(`artist:${a.id}`, a.md, i + 1, a.name, '', true)), 'artists')}
       ${railView('Top albums', 'albums', x.albums.length, x.albums.slice(0, 12).map((al, i) => tileView(`album:${al.id}`, al.md, i + 1, al.name, al.artists.join(', '))))}
@@ -882,9 +1122,9 @@ button.board-row:active{background:rgba(255,255,255,.06)}
 
   function warnView(w) { return `<p class="warn" role="status">${esc(w)}</p>`; }
   function listTitle(id) {
-    const base = { tracks: 'top tracks', artists: 'top artists', albums: 'top albums', genres: 'top genres', recent: 'recently played', played: 'most played' }[state.list];
+    const base = { tracks: 'top tracks', artists: 'top artists', albums: 'top albums', genres: 'top genres', recent: 'recently played', played: 'most played', weeks: 'week by week' }[state.list];
     if (isMe(id)) return base.charAt(0).toUpperCase() + base.slice(1);
-    return state.list === 'recent' ? `${who(id).name}, recently played` : `${who(id).Poss} ${base}`;
+    return state.list === 'recent' || state.list === 'weeks' ? `${who(id).name}, ${base}` : `${who(id).Poss} ${base}`;
   }
   function listBody(id) {
     const kind = state.list;
@@ -901,6 +1141,7 @@ button.board-row:active{background:rgba(255,255,255,.06)}
         <ol class="rank-list">${tracks.map((x, i) => playedRow(x, i + 1)).join('')}</ol>
         ${artists.length ? `<div class="sec-head lt-sub"><h3 class="s-h3">Artists by listening time</h3></div><ol class="rank-list">${artists.map((a, i) => artistTimeRow(id, a, i + 1)).join('')}</ol>` : ''}`;
     }
+    if (kind === 'weeks') return weeksView(id, true);
     if (kind === 'recent') return `<p class="list-note">Spotify shares the ${plural(u.recent.length, 'most recent play', 'most recent plays')}.</p>` + recentView(id, true);
     if (kind === 'genres') return `<p class="list-note">From the genres Spotify tags on ${esc(w.poss)} top ${d.artists.length} artists over ${r.long}, weighted by rank.</p>` + genresView(id, derived(id, state.range).genres, true);
     const cmp = COMPARE[state.range];
@@ -988,6 +1229,8 @@ button.board-row:active{background:rgba(255,255,255,.06)}
       if (rp) return rp;
       const hp = u && u.history && (u.history.top_tracks || []).find(x => x.track && x.track.id === tid);
       if (hp) return hp.track;
+      const wt = u && u.weeks && u.weeks.tracks && u.weeks.tracks[tid];
+      if (wt) return wt;
       if (state.now[id] && state.now[id].id === tid) return state.now[id];
     }
     return null;
@@ -1015,7 +1258,7 @@ button.board-row:active{background:rgba(255,255,255,.06)}
       <dl class="s-dl">
         ${(() => {
           const hp = ((state.users[sid] && state.users[sid].history && state.users[sid].history.top_tracks) || []).find(x => x.track && x.track.id === tid);
-          return hp ? `<div><dt>Played this week</dt><dd>${plural(hp.plays, 'time', 'times')}, ${fmtDur(hp.ms)}</dd></div>` : '';
+          return hp ? `<div><dt>Played in the last 7 days</dt><dd>${plural(hp.plays, 'time', 'times')}, ${fmtDur(hp.ms)}</dd></div>` : '';
         })()}
         ${yourRankRow(sid, 'tracks', tid)}
         ${t.album.name ? `<div><dt>${t.album.type === 'single' ? 'Single' : 'Album'}</dt><dd>${albumLink}</dd></div>` : ''}
@@ -1029,7 +1272,8 @@ button.board-row:active{background:rgba(255,255,255,.06)}
     let a = findArtist(sid, aid);
     if (!a) {
       const hist = ((state.users[sid] && state.users[sid].history && state.users[sid].history.top_tracks) || []).map(x => x.track);
-      const credit = [...((d && d.tracks) || []), ...((state.users[sid] && state.users[sid].recent) || []), ...hist].flatMap(t => t.artists || []).find(x => x.id === aid);
+      const weekly = Object.values((state.users[sid] && state.users[sid].weeks && state.users[sid].weeks.tracks) || {});
+      const credit = [...((d && d.tracks) || []), ...((state.users[sid] && state.users[sid].recent) || []), ...hist, ...weekly].flatMap(t => (t && t.artists) || []).find(x => x.id === aid);
       if (!credit) return '';
       a = { id: aid, name: credit.name, genres: [], url: `https://open.spotify.com/artist/${encodeURIComponent(aid)}` };
     }
@@ -1056,6 +1300,52 @@ button.board-row:active{background:rgba(255,255,255,.06)}
     if (!arts.length) return '';
     return `<div class="s-head solo"><h2 class="s-title">${esc(name)}</h2><p class="s-sub">${arts.length} of ${esc(who(sid).poss)} top artists over ${rangeOf(state.range).long}</p></div>
       <ol class="rank-list s-list">${arts.map(({ a, i }) => `<li><button class="rank-row mini" data-open="artist:${esc(a.id)}"><span class="n${i < 3 ? ' top' : ''}">${i + 1}</span><span class="art round">${img(a.sm)}</span><span class="rt"><span class="t1">${esc(a.name)}</span></span></button></li>`).join('')}</ol>`;
+  }
+  function weekSheet(sid, wk) {
+    const W = state.users[sid] && state.users[sid].weeks;
+    const list = (W && W.weeks) || [];
+    const i = list.findIndex(x => x.w === wk);
+    if (i < 0) return '';
+    const I = weekInfo(W);
+    const x = list[i], older = list[i + 1], newer = list[i - 1];
+    const cur = isCurrent(x, I);
+    const span = countedDays(x, I);
+    const ago = Math.round(daysBetween(x.w, I.thisMon) / 7);
+    const rel = cur ? 'This week so far' : ago === 1 ? 'Last week' : `${ago} weeks ago`;
+    const sub = isMe(sid) ? rel : `${who(sid).Poss} listening, ${rel.charAt(0).toLowerCase()}${rel.slice(1)}`;
+    // Compared with the week before: whole weeks, or the same days so far while a week is under way.
+    let delta = '';
+    if (older && !isPartial(older, I) && !isStartPartial(x, I)) {
+      const base = cur ? older.days.slice(0, span.end + 1).reduce((s, v) => s + v, 0) : older.ms;
+      const d = x.ms - base;
+      const than = cur ? `than last week by ${fmtWdLong.format(dUTC(I.today))}` : 'than the week before';
+      if (base > 0 || x.ms > 0) {
+        delta = Math.abs(d) < 60e3
+          ? `<p class="lt-delta">About the same ${than}</p>`
+          : `<p class="lt-delta ${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'} ${fmtDur(Math.abs(d))} ${d > 0 ? 'more' : 'less'} ${than}</p>`;
+      }
+    }
+    const max = Math.max(1, ...x.days);
+    const bars = x.days.map((ms, j) => {
+      const dt = dUTC(addDays(x.w, j));
+      const on = j >= span.start && j <= span.end;
+      const today = cur && j === span.end;
+      const label = on ? fmtDur(ms) : j > span.end ? 'still to come' : 'before Rotation started counting';
+      return `<div class="lt-col${today ? ' today' : ''}${!on ? ' off' : ms ? '' : ' zero'}" title="${esc(fmtDayUTC.format(dt))}: ${esc(label)}"><span class="lt-val">${on && ms ? fmtDurShort(ms) : ''}</span><span class="lt-bar" style="height:${on && ms ? (5 + (58 * ms) / max).toFixed(1) : 2}%"></span><span class="lt-day">${fmtWd.format(dt)}</span></div>`;
+    }).join('');
+    const tracks = (x.tracks || []).map(t => ({ track: W.tracks && W.tracks[t.id], plays: t.plays, ms: t.ms })).filter(t => t.track);
+    const arts = x.artists || [];
+    return `<div class="s-head solo"><h2 class="s-title">${esc(weekRange(x.w, I))}</h2><p class="s-sub">${esc(sub)}</p></div>
+      <div class="lt-big"><span class="lt-num">${fmtDur(x.ms)}</span><span class="lt-label">listening time</span></div>
+      ${delta}
+      <div class="ranks3 lt-stats"><div><span>Plays</span><strong>${fmtNum(x.plays)}</strong></div><div><span>Days listened</span><strong>${x.active} of ${span.n}</strong></div><div><span>Daily average</span><strong>${fmtDurShort(x.ms / span.n)}</strong></div></div>
+      <div class="lt-chart wk-days" role="img" aria-label="Listening time per day">${bars}</div>
+      ${tracks.length ? `<h3 class="s-h3">Most played</h3><ol class="rank-list s-list">${tracks.map((t, k) => playedRow(t, k + 1)).join('')}</ol>` : '<p class="muted">No plays logged this week.</p>'}
+      ${arts.length ? `<h3 class="s-h3">Top artists</h3><ol class="rank-list s-list">${arts.map((a, k) => artistTimeRow(sid, a, k + 1)).join('')}</ol>` : ''}
+      <div class="wk-nav">
+        <button class="btn btn-quiet"${older ? ` data-open="week:${esc(older.w)}"` : ' disabled'}>Previous week</button>
+        <button class="btn btn-quiet"${newer ? ` data-open="week:${esc(newer.w)}"` : ' disabled'}>Next week</button>
+      </div>`;
   }
   function accountSheet() {
     const me = state.me || {};
@@ -1101,6 +1391,7 @@ button.board-row:active{background:rgba(255,255,255,.06)}
       case 'artist': return artistSheet(sid, id);
       case 'album': return albumSheet(sid, id);
       case 'genre': return genreSheet(sid, id);
+      case 'week': return weekSheet(sid, id);
       default: return '';
     }
   }
@@ -1113,6 +1404,7 @@ button.board-row:active{background:rgba(255,255,255,.06)}
     else app.innerHTML = pageView();
     syncBar();
     applyTint();
+    if (state.screen === 'app') drawCharts();
   }
   function renderSheet() {
     const html = state.screen === 'app' && state.sheet ? sheetContent(state.sheet) : '';
@@ -1269,9 +1561,11 @@ button.board-row:active{background:rgba(255,255,255,.06)}
     if (subjectId() === id) render();
     try {
       const r = await api(`/stats?user=${encodeURIComponent(id)}&tz=${encodeURIComponent(TZ)}${fresh ? '&fresh=1' : ''}`);
-      Object.assign(u, { user: r.user, top: r.top, recent: r.recent || [], history: r.history || null, fetchedAt: r.fetched_at });
+      // If the weekly query failed this time, keep the weeks already on screen.
+      const weeks = r.weeks || u.weeks || null;
+      Object.assign(u, { user: r.user, top: r.top, recent: r.recent || [], history: r.history || null, weeks, fetchedAt: r.fetched_at });
       u.warn = r.stale ? staleNote(u, r.error, id) : null;
-      local.set('u.' + id, { user: r.user, top: r.top, recent: r.recent, history: r.history || null, fetchedAt: r.fetched_at });
+      local.set('u.' + id, { user: r.user, top: r.top, recent: r.recent, history: r.history || null, weeks, fetchedAt: r.fetched_at });
       clearMemo(id);
     } catch (e) {
       if (e.status === 401) { u.loading = false; return signedOut('signed_out'); }

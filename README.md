@@ -41,6 +41,7 @@ Spotify's API has no listening-time or play-count data, so Rotation logs plays i
 - A pg_cron job (`rotation-collect-plays`) calls `POST /cron/collect` every 20 minutes. It's authenticated with the `cron_secret` value in `app_settings`, and it saves everyone's latest 50 plays into `plays` (with track details in `tracks`).
 - Plays are also saved whenever someone's stats load.
 - `app_history` turns the log into minutes for today, the last 7 days and the week before, a 14-day chart, a streak, most played tracks and artists, and plays by hour. `app_leaderboard` ranks you and your friends by listening time over the last 7 days.
+- `app_weeks` powers **Week by week**: every Monday-to-Sunday week since someone's first logged play (up to 3 years), including weeks with no plays, each with its total, plays, days listened, a split by day and its top 5 songs and artists. Song details come once in a shared `tracks` map. The app draws these as a line graph (the first and current weeks are partial, so they're dashed) and a list, and each week opens a sheet with its details.
 - Minutes are estimates: Spotify timestamps a play when it ends, so each play counts as the shorter of the song's length and the time since the previous play ended.
 - History only covers the time since someone joined. Spotify's "Extended streaming history" download could backfill older years later.
 

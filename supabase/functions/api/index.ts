@@ -413,13 +413,14 @@ async function stats(viewer: string, target: string, fresh: boolean, tz: string)
       throw e;
     }),
   ]);
-  // Computed after the recent plays above were saved, so it includes them.
-  const history = await rpc('app_history', { p_user: target, p_tz: tz }).catch((e) => {
-    console.error('history failed', e);
+  // Computed after the recent plays above were saved, so they include them.
+  const optional = (fn: string) => rpc(fn, { p_user: target, p_tz: tz }).catch((e) => {
+    console.error(`${fn} failed`, e);
     return null;
   });
+  const [history, weeks] = await Promise.all([optional('app_history'), optional('app_weeks')]);
   return {
-    user, top: top.data, recent: recent.data ?? [], history,
+    user, top: top.data, recent: recent.data ?? [], history, weeks,
     fetched_at: top.fetched_at, stale: !!top.stale, error: top.error ?? null,
   };
 }
