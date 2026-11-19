@@ -45,6 +45,10 @@ Spotify's API has no listening-time or play-count data, so Rotation logs plays i
 - Minutes are estimates: Spotify timestamps a play when it ends, so each play counts as the shorter of the song's length and the time since the previous play ended.
 - History only covers the time since someone joined. Spotify's "Extended streaming history" download could backfill older years later.
 
+## Versions
+
+The version number in the footer and the **What's new** sheet both come from `CHANGELOG` near the top of the script in `index.html`. For each update, add an entry at the top with the next version, the date and one or two short lines. The footer shows "New" until someone opens What's new on that version (remembered in the browser).
+
 ## Data and caching
 
 - Top items are cached for an hour, recent plays for 5 minutes, now playing for 40 seconds. "Refresh stats" asks for anything older than 2 minutes.

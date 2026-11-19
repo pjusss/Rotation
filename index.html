@@ -348,6 +348,21 @@ button.board-row:active{background:rgba(255,255,255,.06)}
 .foot p{margin:0;max-width:60ch}
 .foot .btn{margin-bottom:22px}
 
+/* Version and what's new */
+.ver{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:6px 0;font-size:12.5px;font-weight:650;color:var(--muted)}
+.ver u{text-decoration-color:var(--faint);text-underline-offset:3px}
+@media (hover:hover){.ver:hover{color:var(--text)}}
+.ver-new{padding:2px 7px;border-radius:999px;background:rgba(34,221,106,.15);color:var(--green);font-size:11px;font-weight:700;line-height:1.35}
+.log{margin:0;padding:0;list-style:none}
+.log>li{padding:16px 0;border-top:1px solid var(--line)}
+.log>li:first-child{padding-top:2px;border-top:0}
+.log-h{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.log-h strong{font-weight:850;font-stretch:66%;font-size:24px;line-height:1}
+.log-h span{font-size:13px;color:var(--muted)}
+.log ul{margin:0;padding-left:18px;list-style:disc;font-size:14px;line-height:1.45;color:rgba(243,242,238,.88)}
+.log ul li::marker{color:var(--faint)}
+.log ul li+li{margin-top:4px}
+
 @media (min-width:640px){
   .scrim{align-items:center;padding:24px}
   .sheet{border-radius:22px;max-height:84vh}
@@ -400,6 +415,15 @@ button.board-row:active{background:rgba(255,255,255,.06)}
     clear() { try { Object.keys(localStorage).filter(k => k.startsWith(PREFIX)).forEach(k => localStorage.removeItem(k)); } catch {} },
   };
   const appUrl = () => location.origin + location.pathname.replace(/index\.html$/, '');
+
+  /* ---------- Versions: add each update at the top. Shown in the footer and in What's new. ---------- */
+  const CHANGELOG = [
+    { v: '1.3', date: '2026-11-19', notes: ['Version number in the footer, with this list of what changed.'] },
+    { v: '1.2', date: '2026-11-19', notes: ['Week by week: a line graph and a list of every week since Rotation started counting.', 'Tap a week for its day-by-day listening, top songs and top artists.'] },
+    { v: '1.1', date: '2026-11-01', notes: ['Listening time: today, the last 7 days, your streak and a 14-day chart.', 'Most played songs and artists, a listening ranking with friends and a decades breakdown.', 'Add Rotation to your home screen like an app.'] },
+    { v: '1.0', date: '2026-11-01', notes: ['Connect with Spotify to see your top artists, tracks, albums and genres for 4 weeks, 6 months and 12 months.', "Invite friends to see their stats, what they're playing and your taste match."] },
+  ];
+  const VERSION = CHANGELOG[0].v;
 
   /* ---------- Small helpers ---------- */
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -701,7 +725,10 @@ button.board-row:active{background:rgba(255,255,255,.06)}
   }
   function footView(u) {
     const when = u && u.fetchedAt ? `Updated ${fmtTime.format(new Date(u.fetchedAt))}${dayLabel(u.fetchedAt) === 'Today' ? '' : ', ' + fmtDay.format(new Date(u.fetchedAt))}. ` : '';
-    return `<footer class="foot"><p>${when}Data from Spotify. Rankings are Spotify's own top items for each period.</p></footer>`;
+    // "New" shows until What's new has been opened on this version.
+    const fresh = local.get('seenVersion') !== VERSION;
+    return `<footer class="foot"><p>${when}Data from Spotify. Rankings are Spotify's own top items for each period.</p>
+      <button class="ver" data-open="updates:all"><u>v${VERSION}</u>${fresh ? '<span class="ver-new">New</span>' : ''}<span class="sr">, see what's new</span></button></footer>`;
   }
 
   function heroView(id, d, r) {
@@ -1378,6 +1405,14 @@ button.board-row:active{background:rgba(255,255,255,.06)}
     return `<div class="s-head solo"><h2 class="s-title">Remove ${esc(n)}?</h2><p class="s-sub">You'll stop seeing each other's stats. You can add each other again with an invite link.</p></div>
       <div class="s-actions"><button class="btn btn-danger btn-block" data-act="remove" data-id="${esc(id)}"${state.busy ? ' disabled' : ''}>Remove</button><button class="btn btn-quiet btn-block" data-act="close">Cancel</button></div>`;
   }
+  const fmtMDY = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  function updatesSheet() {
+    local.set('seenVersion', VERSION);
+    document.querySelectorAll('.ver-new').forEach(el => el.remove());
+    const items = CHANGELOG.map(c => `<li><div class="log-h"><strong>v${esc(c.v)}</strong><span>${esc(fmtMDY.format(dUTC(c.date)))}</span></div>
+      <ul>${c.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></li>`).join('');
+    return `<div class="s-head solo"><h2 class="s-title">What's new</h2><p class="s-sub">You're on version ${esc(VERSION)}.</p></div><ol class="log">${items}</ol>`;
+  }
   function sheetContent(key) {
     const i = key.indexOf(':');
     const kind = key.slice(0, i), id = key.slice(i + 1);
@@ -1392,6 +1427,7 @@ button.board-row:active{background:rgba(255,255,255,.06)}
       case 'album': return albumSheet(sid, id);
       case 'genre': return genreSheet(sid, id);
       case 'week': return weekSheet(sid, id);
+      case 'updates': return updatesSheet();
       default: return '';
     }
   }
